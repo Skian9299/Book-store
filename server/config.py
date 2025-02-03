@@ -33,12 +33,11 @@ api = Api(app)
 
 # Initialize bcrypt
 bcrypt = Bcrypt(app)
-
 # Instantiate CORS
 CORS(app, origins="http://localhost:3000")
 
 # Import models after db initialization
-from models import User, Book, Order, Order, Review  
+from models import User, Order, Order, Review  
 
 if __name__ == "__main__":
     app.run(debug=True)

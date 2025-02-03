@@ -1,37 +1,31 @@
-import React, { useEffect, useState } from "react";
-import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
+// App.js (Correct)
+import React from "react";
+import { Routes, Route } from "react-router-dom";
 import Navbar from "./Navbar";
-import Banner from "./Banner";
-import BookList from "./Booklist";
-import Login from "./Login";
-import Signup from "./Signup";
-import AboutUs from "./About";
-import Checkout from "./Checkout";
-import './App.css';
 import Footer from "./Footer";
-
+import Home from "./Home";
+import BookList from "./BookList";
+import BookDetails from "./BookDetails";
+import Cart from "./Cart";
+import Login from "./Login";
+import Signup from "./SignUp";
 
 function App() {
   return (
-    <Router>
-      <div>
-        {/* Navbar will be visible on all pages */}
-        <Navbar />
-        
-        
-        {/* Set up routes for different pages */}
+    <>
+      <Navbar />
+      <div className="container mt-4">
         <Routes>
-          <Route path="/about" element={<AboutUs />} />
+          <Route path="/" element={<Home />} />
           <Route path="/books" element={<BookList />} />
+          <Route path="/books/:id" element={<BookDetails />} />
+          <Route path="/cart" element={<Cart />} />
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
-          <Route path="/cart" element={<Checkout />} />
         </Routes>
-        <Banner/>
-        <BookList/>
-        <Footer />
       </div>
-    </Router>
+      <Footer />
+    </>
   );
 }
 

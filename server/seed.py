@@ -16,9 +16,9 @@ def seed_data():
         for _ in range(10):
             user = User(
                 name=fake.name(),
-                email=fake.email(),
-                password=fake.password(length=10)  
+                email=fake.email()
             )
+            user.set_password(fake.password(length=10))  # Use the set_password method
             users.append(user)
 
         db.session.add_all(users)
@@ -32,7 +32,8 @@ def seed_data():
                 genre=random.choice(["Fiction", "Mystery", "Sci-Fi", "Romance", "Horror", "Biography"]),
                 published_date=fake.date_between(start_date="-100y", end_date="today"),
                 price=round(random.uniform(5.99, 30.99), 2),
-                image_url=fake.image_url(width=200, height=300) 
+                image_url=fake.image_url(width=200, height=300), 
+                description=fake.paragraph(nb_sentences=3) 
             )
             books.append(book)
 
@@ -60,7 +61,7 @@ def seed_data():
 
         db.session.commit()
 
-        print("✅ Database successfully seeded with 10 users, 20 books, 5 orders, and 10 reviews!")
+        print("✅ Database successfully seeded with 10 users, 10 books, 5 orders, and 10 reviews!")
 
 if __name__ == "__main__":
     seed_data()

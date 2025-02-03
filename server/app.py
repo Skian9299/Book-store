@@ -1,12 +1,14 @@
 #!/usr/bin/env python3
 
 # Remote library imports
+from blinker import Signal
 from flask import Flask, jsonify, request, make_response
-from flask_bcrypt import Bcrypt # type: ignore
-from flask_restful import Resource, Api
+from flask_restful import Api, Resource
 from config import app, db
 from models import User, Book, Order, Review
 from datetime import datetime
+from werkzeug.security import check_password_hash
+from flask_jwt_extended import create_access_token # type: ignore
 
 # Initialize Flask-RESTful API
 api = Api(app)
@@ -161,46 +163,106 @@ class ReviewByID(Resource):
 
 api.add_resource(ReviewByID, '/reviews/<int:id>')
 
-# # Login Resource
-# class Login(Resource):
-#     def post(self):
-#         data = request.get_json()
-#         email = data.get("email")
-#         password = data.get("password")
+# Route for User Signup
+@app.route("/signup", methods=["POST"])
+def register():
+    data = request.get_json()
+    if not data:
+        return jsonify({"message": "No input data provided"}), 400
 
-#         user = User.query.filter_by(email=email).first()
+    name = data.get("name")
+    email = data.get("email")
+    password = data.get("password")
 
-#         if user and Bcrypt.check_password_hash(user.password, password):
-#             return jsonify({"message": "Login successful!", "user": {"id": user.id, "email": user.email}})
-        
-#         return jsonify({"error": "Invalid email or password"}), 401
+    if not name or not email or not password:
+        return jsonify({"message": "Name, email, and password are required"}), 400
 
-# # Add resource to API
-# api.add_resource(Login, "/login")
+    if User.query.filter_by(email=email).first():
+        return jsonify({"message": "User already exists"}), 400
 
+    try:
+        new_user = User(name=name, email=email)
+        new_user.set_password(password)  # Hash password before saving
+        db.session.add(new_user)
+        db.session.commit()
+        return jsonify({"message": "User registered successfully"}), 201
+    except IntegrityError:
+        db.session.rollback()
+        return jsonify({"message": "User already exists"}), 400
+    except Exception as e:
+        return jsonify({"message": f"Error: {str(e)}"}), 500
+    # **User Login**
+class Login(Resource):
+    def post(self):
+        data = request.get_json()
+        if not data:
+            return {"message": "No input data provided"}, 400
 
-# # Signup Resource
-# class Signup(Resource):
-#     def post(self):
-#         data = request.get_json()
-#         email = data.get("email")
-#         password = data.get("password")
+        email = data.get("email")
+        password = data.get("password")
 
-#         # Check if the email already exists
-#         existing_user = User.query.filter_by(email=email).first()
-#         if existing_user:
-#             return jsonify({"error": "Email already registered"}), 400
+        if not email or not password:
+            return {"message": "Email and password are required"}, 400
 
-#         # Hash the password
-#         hashed_password = Bcrypt.generate_password_hash(password).decode("utf-8")
+        user = User.query.filter_by(email=email).first()
+        if user and user.check_password(password):  # Ensure the password is correct
+            access_token = create_access_token(identity=user.id)
+            return {"access_token": access_token}, 200
 
-#         # Create a new user
-#         new_user = User(email=email, password=hashed_password)
-#         db.session.add(new_user)
+        return {"message": "Invalid email or password"}, 401
+    
+
+# # Routes for Cart Resource
+# @app.route("/cart", methods=["GET"])
+# def get_cart():
+#     cart_items = CartItem.query.all()
+#     return jsonify([item.to_dict() for item in cart_items]), 200
+
+# @app.route("/cart", methods=["POST"])
+# def add_to_cart():
+#     data = request.get_json()
+#     title = data.get("title")
+#     price = data.get("price")
+#     quantity = data.get("quantity", 1)
+
+#     if not title or not price:
+#         return jsonify({"message": "Title and price are required"}), 400
+
+#     existing_item = CartItem.query.filter_by(title=title).first()
+#     if existing_item:
+#         existing_item.quantity += quantity
+#     else:
+#         new_item = CartItem(title=title, price=price, quantity=quantity)
+#         db.session.add(new_item)
+
+#     db.session.commit()
+#     return jsonify({"message": "Item added to cart"}), 201
+
+# @app.route("/cart/<int:id>", methods=["PATCH"])
+# def update_quantity(id):
+#     data = request.get_json()
+#     new_quantity = data.get("quantity")
+
+#     item = CartItem.query.get(id)
+#     if not item:
+#         return jsonify({"message": "Item not found"}), 404
+
+#     if new_quantity and new_quantity > 0:
+#         item.quantity = new_quantity
 #         db.session.commit()
+#         return jsonify({"message": "Quantity updated"}), 200
+#     else:
+#         return jsonify({"message": "Invalid quantity"}), 400
 
-#         return jsonify({"message": "User registered successfully!"}), 201
-# api.add_resource(Signup, "/signup")
+# @app.route("/cart/<int:id>", methods=["DELETE"])
+# def remove_item(id):
+#     item = CartItem.query.get(id)
+#     if not item:
+#         return jsonify({"message": "Item not found"}), 404
 
-if __name__ == '__main__':
-    app.run(port=5555, debug=True)
+#     db.session.delete(item)
+#     db.session.commit()
+#     return jsonify({"message": "Item removed from cart"}), 200
+
+if __name__ == "__main__":
+    app.run(debug=True, port=5000) 
